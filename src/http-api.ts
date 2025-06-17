@@ -334,7 +334,7 @@ export class HttpApi<S extends Schema> extends EventEmitter {
             message: response.body,
           };
 
-    if (response.headers['content-type'] === 'text/html') {
+    if (response.headers['content-type'] != null && response.headers['content-type'].includes('text/html')) {
       this._logger.debug(`html response.body: ${response.body}`);
       return new HttpApiError(
         `HTTP response contains html content.

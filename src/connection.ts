@@ -150,6 +150,17 @@ function parseIdUrl(url: string) {
 }
 
 /**
+ * Send basic message in case a refresh is needed when the session expired but there is no OAuth setup !!! SF-toolkit
+ * @private 
+ */ 
+function defaultRefreshFn<S extends Schema>(
+  conn: Connection<S>,
+  callback: Callback<string, TokenResponse>,
+) {
+  callback(new Error('defaultRefreshFn'), undefined);
+}
+
+/**
  * Session Refresh delegate function for OAuth2 authz code flow
  * @private
  */
@@ -339,6 +350,8 @@ export class Connection<S extends Schema = Schema> extends EventEmitter {
     let refreshFn = config.refreshFn;
     if (!refreshFn && this.oauth2.clientId) {
       refreshFn = oauthRefreshFn;
+    }else if(!refreshFn && !this.oauth2.clientId){
+      refreshFn = defaultRefreshFn;
     }
     if (refreshFn) {
       this._refreshDelegate = new SessionRefreshDelegate(this, refreshFn);
@@ -709,6 +722,11 @@ export class Connection<S extends Schema = Schema> extends EventEmitter {
     return httpApi.request<R>(request_);
   }
 
+  httpApi<R = unknown>(request: HttpRequest, options: Object) {
+    var _options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    return new HttpApi(this, _options)
+  }
+
   /**
    * Send HTTP GET request
    *
@@ -849,7 +867,7 @@ export class Connection<S extends Schema = Schema> extends EventEmitter {
   _supports(feature: string) {
     switch (feature) {
       case 'sobject-collection': // sobject collection is available only in API ver 42.0+
-        return this._ensureVersion(42);
+        return !this.tooling;//this._ensureVersion(42);
       default:
         return false;
     }
